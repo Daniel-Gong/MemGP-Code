@@ -1,0 +1,7 @@
+wrote /Users/dongyu/Documents/Github/WM-GP/paper/code/results/bias/adaptive_bias_confirm_trials.csv
+wrote /Users/dongyu/Documents/Github/WM-GP/paper/code/results/bias/adaptive_bias_confirm_summary.csv
+wrote /Users/dongyu/Documents/Github/WM-GP/paper/code/results/bias/adaptive_bias_confirm_trials.npz
+   readout  pilot_optimal_shift_deg  confirm_mae_unshifted  confirm_mae_shifted  mae_change_shifted_minus_unshifted  supports_error_reduction
+     plain                 4.344899              24.735437            23.710419                           -1.025018                      True
+normalized                -4.680171              17.847774            17.346916                           -0.500857                      True
+merged 20 shards -> /Users/dongyu/Documents/Github/WM-GP/paper/code/results/bias/adaptive_bias_confirm_trials.csv (20 subjects)

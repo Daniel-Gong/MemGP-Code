@@ -1,0 +1,14 @@
+  trial 10/100 done
+  trial 20/100 done
+  trial 30/100 done
+  trial 40/100 done
+  trial 50/100 done
+  trial 60/100 done
+  trial 70/100 done
+  trial 80/100 done
+  trial 90/100 done
+  trial 100/100 done
+
+saved -> /tmp/results/circuit/cued_precision.npz
+  relative precision at delay end (vs cue onset): cued 1.022x  neutral 0.843x  ratio 1.213x (100 trials, N=4, paired explicit network)
+  delta mean at delay end (vs cue onset): cued -1.129497e-02  neutral -1.129497e-02  max |cued-neutral| 0.000000e+00

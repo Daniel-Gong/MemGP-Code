@@ -1,0 +1,3 @@
+readout,pilot_optimal_shift_deg,confirm_mae_unshifted,confirm_mae_shifted,mae_change_shifted_minus_unshifted,supports_error_reduction
+plain,4.344898785157227,24.735437494352105,23.710419053120415,-1.0250184412316905,True
+normalized,-4.68017085272578,17.847773537636122,17.346916288455148,-0.5008572491809744,True

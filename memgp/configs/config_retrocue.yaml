@@ -1,0 +1,52 @@
+experiment:
+  set_sizes: [1, 2, 4, 6]
+  n_trials: 200
+  random_seed: 42
+  
+data:
+  n_samples_per_item: 1000
+  loc_std: 20.0
+  color_std: 20.0
+  loc_encoding_noise_std: 0.0
+  color_encoding_noise_std: 0.0
+
+model:
+  inducing_grid_size: 10
+  loc_lengthscale: 10.0
+  color_lengthscale: 10.0
+  learn_inducing_locations: true
+
+likelihood:
+  # 1e-4 (not near-exact 1e-6): a smoother posterior yields genuine inter-item
+  # interference/forgetting that grows with load, which is what makes the
+  # retrocue benefit load-dependent. Lowering this to 1e-6 flattens the effect.
+  noise_variance: 0.0001
+
+training:
+  encoding_epochs: 100
+  maintenance_epochs: 100
+  cue_start_epoch: 50              # Start applying cue
+  encoding_lr: 0.05
+  maintenance_lr: 0.01
+  beta: 2
+  # Maintenance = previous-step self-sustain on the live inducing grid: each
+  # epoch evaluates at current inducing points and regresses toward the
+  # posterior mean from the previous epoch (seeded at encoding end, rolled
+  # after every update). No frozen encoding-end evaluation grid. The KL term
+  # (beta) widens the posterior over the delay -> forgetting as growing recall
+  # uncertainty; attention up-weights the cued region's ELBO (recomputed on
+  # current inducing locations), tightening its posterior. Benefit is read out
+  # by SAMPLING the posterior (variance-sensitive).
+
+attention:
+  spatial_std: 20.0
+  attended_gain: 40.0
+
+normalization:
+  loc_pool_width: 60.0
+  baseline_frac: 0.8
+
+output:
+  log_every: 10
+  save_animations: true
+  save_plots: true

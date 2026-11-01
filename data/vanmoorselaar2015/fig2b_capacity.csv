@@ -1,0 +1,25 @@
+# van Moorselaar et al. (2015) Experiment 2 — Cowan's K for panel e
+#
+# Source: Forgotten but not gone… JEP:LMC 41(6), 1755–1763.
+# DOI: 10.1037/xlm0000124
+# PDF: Zotero METDG2LR / copied under this folder when available.
+#
+# Means digitized from Figure 2b (collapsed single-cue + double-cue bars;
+# load 8; n = 13). Text confirms benefit = 2.3 and cost = 2.0 items
+# (valid − no = 6.1 − 3.8; no − invalid = 3.8 − 1.8). SEM read from
+# plotted error bars (± half whisker), approximate.
+#
+# Mapping onto the cue-flexibility axes (item A first-cued, then redirect to B):
+#   cue A, item A = single valid
+#   cue A, item B = single invalid
+#   cue B (redirect), item A = double invalid
+#   cue B (redirect), item B = double valid
+#
+# Note: the paper reports K for the probed item under each cue condition,
+# not simultaneous dual-item capacity; the A/B layout remaps those
+# condition means onto the flexibility plot.
+condition,item,K_mean,K_sem
+cue_A,A,6.10,0.25
+cue_A,B,1.80,0.25
+cue_B,A,2.00,0.40
+cue_B,B,4.50,0.25

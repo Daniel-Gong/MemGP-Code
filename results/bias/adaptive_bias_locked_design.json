@@ -1,0 +1,49 @@
+{
+  "selection_source": "adaptive_bias_pilot_trials.csv",
+  "selection_readout": "normalized",
+  "low_load_distance_levels": [
+    105.0,
+    135.0
+  ],
+  "high_load_distance_levels": [
+    45.0,
+    135.0
+  ],
+  "fixed_distance": 135.0,
+  "maintenance_levels": [
+    25,
+    200
+  ],
+  "encoding_levels": [
+    40,
+    200
+  ],
+  "beta_levels": [
+    0.5,
+    8.0
+  ],
+  "confirm_subjects": 20,
+  "confirm_trials_per_subject": 100,
+  "posterior_draws_per_trial": 1,
+  "primary_metric": "100 * responses_away / total_responses - 50",
+  "primary_readout": "normalized",
+  "ablation_readout": "plain",
+  "encoding_distance_color_stds": [
+    60.0,
+    10.0
+  ],
+  "encoding_distance_levels": [
+    75.0,
+    135.0
+  ],
+  "encoding_peak_by_color_std": {
+    "10.0": 75.0,
+    "20.0": 105.0,
+    "40.0": 135.0,
+    "60.0": 135.0
+  },
+  "encoding_interaction_ok": true,
+  "encoding_selection_note": "manual: precise color_std=10 (was 8); noisy=60; distances 75/135 retained for Exp. 4 signature",
+  "encoding_operationalization": "color_std observation noise with fixed fit epochs; higher color_std = shorter/noisier encoding",
+  "encoding_selection_source": "adaptive_bias_encoding_pilot_trials.csv"
+}

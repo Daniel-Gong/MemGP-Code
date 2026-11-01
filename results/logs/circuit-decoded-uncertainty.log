@@ -1,0 +1,10 @@
+  trial 20/100 done
+  trial 40/100 done
+  trial 60/100 done
+  trial 80/100 done
+  trial 100/100 done
+
+saved -> /tmp/results/circuit/decoded_uncertainty.npz
+Spearman rho(posterior width, |error|) = 0.386  (p=1.14e-15); n=400 items  [explicit network]
+  for comparison, Fisher 1/sqrt(J): rho = 0.243  (p=8.37e-07)
+saved preview -> /tmp/results/circuit/decoded_uncertainty_preview.png

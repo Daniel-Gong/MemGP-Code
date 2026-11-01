@@ -1,0 +1,5 @@
+  [misbinding] subject=6 level=None N=2 done
+  [misbinding] subject=6 level=None N=4 done
+  [misbinding] subject=6 level=None N=6 done
+  [misbinding] subject=6 level=None N=8 done
+wrote /tmp/results/setsize/shards/misbinding/subject_006_level_0.csv (3000 rows)

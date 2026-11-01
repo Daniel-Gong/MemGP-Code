@@ -1,0 +1,6 @@
+  [M] subject=16 level=7 N=1 done
+  [M] subject=16 level=7 N=2 done
+  [M] subject=16 level=7 N=4 done
+  [M] subject=16 level=7 N=6 done
+  [M] subject=16 level=7 N=8 done
+wrote /tmp/results/setsize/shards/M/subject_016_level_1.csv (1050 rows)

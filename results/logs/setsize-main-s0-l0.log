@@ -1,0 +1,6 @@
+  [main] subject=0 level=None N=1 done
+  [main] subject=0 level=None N=2 done
+  [main] subject=0 level=None N=4 done
+  [main] subject=0 level=None N=6 done
+  [main] subject=0 level=None N=8 done
+wrote /tmp/results/setsize/shards/main/subject_000_level_0.csv (2100 rows)

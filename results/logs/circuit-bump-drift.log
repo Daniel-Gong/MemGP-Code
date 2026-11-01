@@ -1,0 +1,11 @@
+  trial 20/100 done
+  trial 40/100 done
+  trial 60/100 done
+  trial 80/100 done
+  trial 100/100 done
+
+saved -> /tmp/results/circuit/bump_diffusion.npz
+decoded on a 0.10 deg grid (explicit network):
+  argmax                     rho=+0.560  drift 0.022 -> 1.264 deg  D=0.01028
+  population vector          rho=+0.528  drift 0.032 -> 2.982 deg  D=0.08771
+saved preview -> /tmp/results/circuit/bump_diffusion_preview.png

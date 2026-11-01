@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# Rendered figures and tables: regenerate with scripts/make_figures.sh
+figures/output/
+
+# Intermediate per-task outputs from array jobs (merged files are kept)
+results/*/shards/
+results/bias/adaptive_bias_confirm_shards/
+cluster/logs/

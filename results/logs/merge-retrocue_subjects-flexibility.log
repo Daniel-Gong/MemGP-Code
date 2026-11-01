@@ -1,0 +1,7 @@
+Merging 20 subject shards for 'flexibility'
+
+Cue-redirect group summary (means across subjects):
+ n_subjects  A_post_cueA  A_post_cueA_sem  B_post_cueA  B_post_cueA_sem  A_post_cueB  A_post_cueB_sem  B_post_cueB  B_post_cueB_sem   delta_A   delta_B  tradeoff  tradeoff_sem  t_tradeoff   p_tradeoff  df
+         20    22.857551         0.698565    30.878735         0.719497    35.190482         0.886472    27.093657         0.812492 12.332931 -3.785078 16.118009      0.900549   17.897987 2.372989e-13  19
+  Saved → /Users/dongyu/Documents/Github/WM-GP/paper/code/results/retrocue/cue_flexibility_subjects.csv
+  Saved → /Users/dongyu/Documents/Github/WM-GP/paper/code/results/retrocue/cue_flexibility_summary.csv
