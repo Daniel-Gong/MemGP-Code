@@ -44,6 +44,8 @@ scripts/          run_tasks.py, make_figures.sh, smoke_test.sh
 Python 3.9 was used for all results.
 
 ```bash
+git clone https://github.com/Daniel-Gong/MemGP-Code.git
+cd MemGP-Code
 python3.9 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt

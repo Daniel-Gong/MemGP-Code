@@ -15,7 +15,7 @@ Panels
   g    Location slice of the outgoing weights (at the source color) for the
        periodic kernel across lengthscales (jitter 1e-3).
 
-Run from paper/code:  ../../.venv/bin/python -m figures.figS_kernel_precision
+Run from the MemGP-Code root:  python -m figures.figS_kernel_precision
 """
 from pathlib import Path
 
