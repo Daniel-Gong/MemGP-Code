@@ -13,7 +13,6 @@ from decimal import Decimal, ROUND_HALF_UP
 import numpy as np
 import pandas as pd
 from scipy import stats
-from scipy.stats import spearmanr
 
 from figures import nature_style as ns
 from figures.fig2_setsize import model_subject_stats
@@ -21,7 +20,7 @@ from figures.fig3_retrocue import model_dynamics
 from figures.fig4_bias import (
     _human_precision_repulsion, _memgp_precision_repulsion, memgp_bias_measure,
 )
-from figures.fig5_circuit import diffusion_stats
+from figures.fig5_circuit import diffusion_stats, uncertainty_rho_ci
 
 
 def half_up(x, places=1, sign=False):
@@ -135,12 +134,7 @@ def fig5():
           f"{st['disp'].shape[0]} trials; report circular SD {ns.circ_sd_deg(report):.1f} deg")
 
     unc = ns.load_npz(ns.result_path("circuit", "decoded_uncertainty.npz"))
-    errs = np.abs(np.asarray(unc["errs"], float))
-    width = np.asarray(unc["uncert"], float)
-    rng = np.random.default_rng(5)
-    boot = [spearmanr(errs[i], width[i]).statistic
-            for i in (rng.integers(0, errs.size, errs.size) for _ in range(1000))]
-    lo, hi = np.percentile(boot, [2.5, 97.5])
+    lo, hi = uncertainty_rho_ci(unc)
     print(f"  uncertainty (5e): Spearman rho = {float(unc['rho']):.2f}, 95% CI [{lo:.2f}, {hi:.2f}], "
           f"p = {float(unc['p']):.1e}; {int(unc['n_trials'])} trials at N={int(unc['set_size'])}")
 

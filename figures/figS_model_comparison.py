@@ -156,7 +156,7 @@ def main():
         axes[0, col].set_title(MODEL_LABELS[m], color=c, fontweight="bold", fontsize=8)
         axes[1, col].set_xlabel("Set size")
     axes[0, 0].set_ylabel("$w$")
-    axes[1, 0].set_ylabel("CSD (rad)")
+    axes[1, 0].set_ylabel("circular SD (rad)")
 
     fig.tight_layout(w_pad=1.0, h_pad=1.5)
     for ext in ("pdf", "png"):

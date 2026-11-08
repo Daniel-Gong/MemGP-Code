@@ -508,6 +508,29 @@ def local_linear(x, y, grid, frac=0.75):
     return out
 
 
+def display_resample(unc, rng):
+    """Item indices for one bootstrap draw that resamples whole displays.
+
+    The items of one display share an encoding and a posterior, so they are
+    kept together. Items are stored display by display, ``set_size`` each.
+    """
+    k, n = int(unc["set_size"]), int(unc["n_trials"])
+    if np.asarray(unc["errs"]).size != n * k:
+        raise ValueError("decoded_uncertainty items do not form complete displays")
+    d = rng.integers(0, n, n)
+    return (d[:, None] * k + np.arange(k)).ravel()
+
+
+def uncertainty_rho_ci(unc, n_boot=1000, seed=5):
+    """95% display-bootstrap interval of the uncertainty-error Spearman rho."""
+    errs = np.abs(np.asarray(unc["errs"], float))
+    width = np.asarray(unc["uncert"], float)
+    rng = np.random.default_rng(seed)
+    boot = [spearmanr(errs[i], width[i]).statistic
+            for i in (display_resample(unc, rng) for _ in range(n_boot))]
+    return tuple(np.percentile(boot, [2.5, 97.5]))
+
+
 def panel_f(ax, unc, frac=0.75, n_boot=300, seed=5):
     """Circular SD of sampled peaks against recall error (van Bergen et al. 2015).
 
@@ -517,14 +540,9 @@ def panel_f(ax, unc, frac=0.75, n_boot=300, seed=5):
     errs = np.abs(np.asarray(unc["errs"], float))
     width = np.asarray(unc["uncert"], float)
     rho = float(unc["rho"])
-    # Item bootstrap of the rank correlation. Seed 5 reproduces the interval
-    # quoted in the text, [0.28, 0.43].
-    rng_rho = np.random.default_rng(5)
-    boot_rho = np.empty(1000)
-    for i in range(1000):
-        idx = rng_rho.integers(0, errs.size, errs.size)
-        boot_rho[i] = spearmanr(errs[idx], width[idx]).statistic
-    rho_lo, rho_hi = np.percentile(boot_rho, [2.5, 97.5])
+    # Display bootstrap of the rank correlation; seed 5 gives the interval
+    # quoted in the text.
+    rho_lo, rho_hi = uncertainty_rho_ci(unc)
 
     ax.scatter(errs, width, s=5.0, color=AMBER, alpha=0.30, edgecolors="none",
                rasterized=True, zorder=2)
@@ -534,7 +552,7 @@ def panel_f(ax, unc, frac=0.75, n_boot=300, seed=5):
     grid = np.linspace(errs.min(), errs.max(), 140)
     rng = np.random.default_rng(seed)
     boot = np.array([local_linear(errs[i], width[i], grid, frac)
-                     for i in (rng.integers(0, errs.size, errs.size)
+                     for i in (display_resample(unc, rng)
                                for _ in range(n_boot))])
     lo, hi = np.percentile(boot, [2.5, 97.5], axis=0)
     ax.fill_between(grid, lo, hi, color=INK, alpha=0.22, lw=0, zorder=4)

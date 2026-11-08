@@ -7,18 +7,15 @@ sparse variational Gaussian process; the slot and resource accounts are limiting
 projections of this single, mechanistic process.
 
 Schematic-led composite (no data):
-  a  reframing : two-item array -> noisy observations -> GP posterior
-     mean surface on the location x color torus, colored by posterior s.d.
-  b  SVGP machinery: 2D input (location x colour) -> 1D belief f(l,c);
-     full belief vs. sparse inducing-point posterior
-  c  descriptive -> mechanistic positioning of WM models
-  d  the three-stage inference pipeline (encoding / maintenance / retrieval)
+  a  two-item display connected to the GP posterior mean surface on the
+     location x color torus, colored by posterior s.d.
+  b  full belief vs. sparse inducing-point posterior
+  c  the three-stage inference pipeline (encoding / maintenance / retrieval)
 """
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap, LightSource, Normalize
-from matplotlib.patches import FancyBboxPatch
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 from figures import nature_style as ns
 
@@ -113,11 +110,11 @@ def _shade_uncertainty(z, unc):
     )
 
 
-def _dress_posterior(ax, z0, z1):
+def _dress_posterior(ax, z0, z1, zoom=0.86):
     """Axis treatment shared with the supplementary GP-prior surfaces."""
     ax.view_init(elev=_VIEW[0], azim=_VIEW[1])
     ax.set_proj_type("ortho")
-    ax.set_box_aspect((1.0, 1.0, 0.52), zoom=0.86)
+    ax.set_box_aspect((1.0, 1.0, 0.52), zoom=zoom)
     for p in (ax.xaxis, ax.yaxis, ax.zaxis):
         p.pane.fill = False
         p.pane.set_facecolor((1, 1, 1, 0))
@@ -138,8 +135,9 @@ def _dress_posterior(ax, z0, z1):
     # Default 3D padding pushes the z labels toward the colorbar. A smaller
     # pad keeps -1, 0, 1 beside the spine without sitting on the line.
     ax.tick_params(axis="z", pad=-3.0)
-    ax.set_xlabel(r"location $\ell$", fontsize=7.5, labelpad=1.5)
-    ax.set_ylabel(r"color $c$", fontsize=7.5, labelpad=1.5)
+    # Label pads clear the corner tick numbers on this smaller surface.
+    ax.set_xlabel(r"location $\ell$", fontsize=7.5, labelpad=6)
+    ax.set_ylabel(r"color $c$", fontsize=7.5, labelpad=4)
     ax.set_zlabel("")
     pad = 14.0
     ax.set_xlim(-180.0 - pad, 180.0 + pad)
@@ -150,19 +148,22 @@ def _dress_posterior(ax, z0, z1):
     ax.figure.canvas.draw()
     spine = ax.zaxis.line.get_xydata()
     top = spine[int(np.argmax(spine[:, 1]))]
-    ax.text2D(
-        top[0] - 0.008, top[1] + 0.002, r"memory strength $f$",
-        transform=ax.transData, ha="center", va="bottom", fontsize=7.5,
-        color=ns.INK, clip_on=False,
+    # Sit the label on the surface side of the vertical axis so it does not
+    # run into the inducing-point maps on the right.
+    _place_runs(
+        ax, top[0] + 0.045, top[1] + 0.010,
+        [("memory strength ", ns.INK), (r"$f$", ns.MEM)],
+        fontsize=7.5, transform=ax.transData, ha="right", va="baseline",
+        dys=[0.0, -0.14],
     )
 
 
-def panel_a(ax):
-    """Stimulus array, noisy observations, and the GP posterior over the torus.
+def panel_a(ax, disp):
+    """Stimulus display connected directly to the GP posterior over the torus.
 
-    Left: two items on the display. Middle: location-color samples. Right:
-    one posterior-mean surface. Height is the mean; color is the posterior
-    standard deviation at every (location, color).
+    Left: two items on the display. Right: one posterior-mean surface.
+    Height is the mean; color is the posterior standard deviation at every
+    (location, color). One arrow, labeled observe and infer, joins them.
     """
     fig = ax.figure
     fig_w, fig_h = fig.get_size_inches()
@@ -172,24 +173,30 @@ def panel_a(ax):
     ns.blank(ax, equal=False)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
+    # Same baseline and the same gap after the letter as panel c.
+    # Panel c's letter sits 0.015 of its (wider) axes left of the title.
+    ax.text(
+        0.1011 / pw - 0.015, 0.894,
+        r"Encoding as inference, $p(f \mid \mathbf{X},\mathbf{y})$",
+        transform=ax.transAxes, ha="left", va="bottom", fontsize=10,
+        fontweight="bold", color=ns.INK, clip_on=False,
+    )
 
-    groups, X, y = _observation_cloud()
+    _, X, y = _observation_cloud()
     axis, mean, sd = _posterior_on_grid(X, y)
 
-    # Physical layout along the strip. Sizes are inches, then converted to
-    # the parent axes so the screen stays square. The Observe arrow stops
-    # short of the scatter so the Color label has its own gap.
-    pad_l, side = 0.02, min(1.52, ph * 0.84)
-    gap_obs, gap_inf = 0.72, 0.50
-    sc_w = side
-    color_gap = 0.20
-    # Middle axes run from -180 to the arrow tips at 215, inside ±245.
-    # The display square matches that axis length. task_screen draws a
-    # square of side 2.15 inside limits of ±1.15.
-    axis_len = side * (215.0 - (-180.0)) / (245.0 - (-245.0))
-    disp = axis_len * 2.30 / 2.15
-    axis_mid = ((-180.0 + 215.0) / 2.0 - (-245.0)) / (245.0 - (-245.0))
-    disp_y0 = 0.22 + side * axis_mid - disp / 2.0
+    # Inches within the parent axes. disp matches the panel-c screen.
+    # A horizontal colorbar under the surface keeps width for the display,
+    # the arrow, and the field itself.
+    pad_l = 0.02
+    gap = 0.96
+    cbar_bottom = 0.32
+    cbar_h = 0.070
+    cbar_gap = 0.18
+    top_pad = 0.02
+    y3_in = cbar_bottom + cbar_h + cbar_gap
+    h3_in = ph - y3_in - top_pad
+    y_disp = y3_in + (h3_in - disp) / 2.0
 
     def ax_x(inches):
         return inches / pw
@@ -197,85 +204,25 @@ def panel_a(ax):
     def ax_y(inches):
         return inches / ph
 
-    y_bot = ax_y(0.22)
-    side_y = ax_y(side)
-    sc_h = side_y
-    y0 = y_bot
+    _display_inset(ax, [ax_x(pad_l), ax_y(y_disp), ax_x(disp), ax_y(disp)])
 
-    screen = ax.inset_axes([ax_x(pad_l), ax_y(disp_y0), ax_x(disp), ax_y(disp)])
-    ns.blank(screen, equal=True)
-    screen.set_xlim(-1.15, 1.15)
-    screen.set_ylim(-1.15, 1.15)
-    ns.task_screen(screen, 0, 0, s=2.15, lw=1.35, z=2)
-    ns.stim_items(
-        screen, [(l, c) for l, c, _ in ITEMS], 0, 0,
-        ring_r=0.72, sq=0.34, lw=0.7, z=5,
-    )
-
-    x_obs0 = pad_l + disp + gap_obs
-    mid_y = y0 + 0.50 * side_y
-    ns.arrow(ax, (ax_x(pad_l + disp + 0.05), mid_y),
-             (ax_x(x_obs0 - color_gap - 0.02), mid_y), lw=1.15, ms=9)
-    ax.text(ax_x(pad_l + disp + 0.5 * (gap_obs - color_gap)), mid_y + ax_y(0.11),
-            "Observe", ha="center", va="bottom", fontsize=8.0, color=ns.INK)
-    ax.text(ax_x(x_obs0 - 0.5 * color_gap), mid_y, "Color",
-            rotation=90, ha="center", va="center", fontsize=8.0, color=ns.INK,
-            rotation_mode="anchor")
-
-    sc = ax.inset_axes([ax_x(x_obs0), y0, ax_x(sc_w), sc_h])
-    sc.set_xlim(-245, 245)
-    sc.set_ylim(-245, 245)
-    sc.set_xticks([])
-    sc.set_yticks([])
-    for spine in sc.spines.values():
-        spine.set_visible(False)
-    sc.annotate(
-        "", xy=(215, -180), xytext=(-180, -180),
-        arrowprops=dict(arrowstyle="-|>", color=ns.INK, lw=1.05,
-                        shrinkA=0, shrinkB=0),
-    )
-    sc.annotate(
-        "", xy=(-180, 215), xytext=(-180, -180),
-        arrowprops=dict(arrowstyle="-|>", color=ns.INK, lw=1.05,
-                        shrinkA=0, shrinkB=0),
-    )
-    sc.text(18, -232, "Location", ha="center", va="top", fontsize=8.0,
-            color=ns.INK, clip_on=False)
-    # Tick marks at the axis ends, same labels as Figure 5b.
-    tick = 14
-    for xv in (-180, 180):
-        sc.plot([xv, xv], [-180, -180 - tick], color=ns.INK, lw=0.8,
-                clip_on=False, zorder=4, solid_capstyle="butt")
-        sc.text(xv, -180 - tick - 6, f"{xv}", ha="center", va="top",
-                fontsize=7.5, color=ns.INK, clip_on=False)
-    for yv in (-180, 180):
-        sc.plot([-180 - tick, -180], [yv, yv], color=ns.INK, lw=0.8,
-                clip_on=False, zorder=4, solid_capstyle="butt")
-        sc.text(-180 - tick - 6, yv, f"{yv}", ha="right", va="center",
-                fontsize=7.5, color=ns.INK, clip_on=False)
-    for pts, (_, _, col) in zip(groups, ITEMS):
-        sc.scatter(pts[:, 0], pts[:, 1], s=3.5, color=col, linewidths=0,
-                   zorder=3, clip_on=False)
-
-    x_inf0 = x_obs0 + sc_w + gap_inf
-    ns.arrow(ax, (ax_x(x_obs0 + sc_w + 0.06), mid_y),
-             (ax_x(x_inf0 - 0.06), mid_y), lw=1.15, ms=9)
-    ax.text(ax_x(x_obs0 + sc_w + 0.5 * gap_inf), mid_y + ax_y(0.11),
-            "Infer", ha="center", va="bottom", fontsize=8.0, color=ns.INK)
+    x_arrow0 = pad_l + disp + 0.05
+    x_arrow1 = pad_l + disp + gap - 0.05
+    mid_y = ax_y(y_disp + disp / 2.0)
+    ns.arrow(ax, (ax_x(x_arrow0), mid_y), (ax_x(x_arrow1), mid_y),
+             lw=1.15, ms=9)
+    ax.text(ax_x(0.5 * (x_arrow0 + x_arrow1)), mid_y + ax_y(0.09),
+            "observe and infer", ha="center", va="bottom",
+            fontsize=7.4, color=ns.INK)
 
     # 3-D posterior sits in figure coordinates so it can be a real 3-D axes.
-    # The colorbar stays at the right margin; the surface is shifted left
-    # so the z-axis is not tight against that bar.
-    x3 = bb.x0 + ax_x(x_inf0) * bb.width
-    y3 = bb.y0 + 0.01 * bb.height
-    h3 = bb.height * 0.98
-    cbar_w, cbar_gap = 0.012, 0.020
-    cbar_left = 0.908
-    # Same width as before; both edges move left, the colorbar does not.
-    shift = 0.022
-    x3 -= shift
-    ax_right = cbar_left - cbar_gap - shift
-    w3 = ax_right - x3
+    # Right pad keeps the color-axis label inside this panel.
+    x3_in = pad_l + disp + gap
+    right_pad_in = 0.28
+    x3 = bb.x0 + (x3_in / pw) * bb.width
+    y3 = bb.y0 + (y3_in / ph) * bb.height
+    w3 = bb.x1 - x3 - right_pad_in / fig_w
+    h3 = (h3_in / ph) * bb.height
     ax3 = fig.add_axes([x3, y3, w3, h3], projection="3d")
 
     axis_c, mu = _close_torus(axis, mean)
@@ -298,33 +245,71 @@ def panel_a(ax):
             [loc], [col], [z + 0.08], s=42, color=rgb, edgecolors="white",
             linewidths=0.6, depthshade=False, zorder=10,
         )
-    _dress_posterior(ax3, -1.80, 1.15)
+    _dress_posterior(ax3, -1.80, 1.15, zoom=1.08)
 
     sm = mpl.cm.ScalarMappable(
         norm=Normalize(_UNC_VMIN, _UNC_VMAX), cmap=_UNC_CMAP,
     )
     sm.set_array([])
     cax = fig.add_axes([
-        cbar_left,
-        y3 + 0.22 * h3,
-        cbar_w,
-        0.52 * h3,
+        x3 + 0.18 * w3,
+        bb.y0 + (cbar_bottom / ph) * bb.height,
+        0.64 * w3,
+        (cbar_h / ph) * bb.height,
     ])
-    cb = fig.colorbar(sm, cax=cax, ticks=[0, 0.5, 1])
-    cb.ax.set_yticklabels(["0", "0.5", "1"])
+    cb = fig.colorbar(
+        sm, cax=cax, orientation="horizontal", ticks=[0, 0.5, 1],
+    )
     cb.ax.tick_params(labelsize=7.0, length=2.4, width=0.6, colors=ns.INK)
     cb.outline.set_linewidth(0.6)
     cb.outline.set_edgecolor(ns.GREY_LT)
-    cb.set_label(r"posterior s.d.", fontsize=7.5, labelpad=2)
-    return ax3
+    cb.set_label(r"memory uncertainty (posterior s.d.)", fontsize=7.5, labelpad=1)
+    return cax
 
 
 # ---------------------------------------------------------------------------
 # Typography shared with fig4a / fig5a schematic panels.
 _FS_HEAD = 9.0
-_FS_NOTE = 7.5
 _FS_MIN = 7.0
 _FS_EQ = 10.0
+
+
+def _place_runs(ax, x, y, runs, fontsize, transform, ha="center", va="center",
+                weight="normal", dys=None):
+    """Draw colored text runs as one phrase aligned at (x, y).
+
+    dys: per-run vertical shift in em. Negative moves that run down.
+    """
+    fig = ax.figure
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    inv = transform.inverted()
+    draw = ax.text2D if hasattr(ax, "text2D") else ax.text
+    if dys is None:
+        dys = [0.0] * len(runs)
+    texts, widths, yoffs = [], [], []
+    for s, color, dy_em in zip((r[0] for r in runs), (r[1] for r in runs), dys):
+        t = draw(
+            x, y, s, fontsize=fontsize, color=color, fontweight=weight,
+            ha="left", va=va, transform=transform, clip_on=False,
+        )
+        texts.append(t)
+        bb = t.get_window_extent(renderer)
+        p0 = inv.transform((0.0, 0.0))
+        p1 = inv.transform((bb.width, 0.0))
+        widths.append(p1[0] - p0[0])
+        dy_px = dy_em * fontsize * fig.dpi / 72.0
+        yoffs.append(inv.transform((0.0, dy_px))[1] - p0[1])
+    total = sum(widths)
+    if ha == "center":
+        cursor = x - 0.5 * total
+    elif ha == "right":
+        cursor = x - total
+    else:
+        cursor = x
+    for t, w, dy in zip(texts, widths, yoffs):
+        t.set_position((cursor, y + dy))
+        cursor += w
 
 
 # Cued item in the maintenance / retrieval insets — same two stimuli as
@@ -385,25 +370,30 @@ def _stage_inset(ax, rect, kind):
     cue_l, cue_c = item_xy[_CUED]
 
     if kind in ("encode", "maintain"):
-        # Same lengthscale / viridis rendering as panel c; maintenance keeps
-        # the cued bump and lets the others decay under the KL term.
-        amps = ([1.0] * len(ITEMS) if kind == "encode"
-                else [1.0 if i == _CUED else 0.30 for i in range(len(ITEMS))])
-        ell = np.degrees(0.44)  # matches panel c / panel a
-        n = 140
-        g = np.linspace(-180, 180, n)
-        GL, GC = np.meshgrid(g, g, indexing="ij")
-        grid = np.column_stack([GL.ravel(), GC.ravel()])
-        raw = np.zeros(grid.shape[0])
-        for (l, c), a in zip(item_xy, amps):
-            d = grid - np.array([l, c])
-            raw += a * np.exp(-0.5 * np.sum(d * d, axis=-1) / ell ** 2)
-        lo, hi = float(raw.min()), float(raw.max())
-        surf = np.clip(((raw - lo) / (hi - lo + 1e-12)).reshape(n, n), 0.0, 1.0)
-        iax.imshow(
-            surf.T, origin="lower", cmap="viridis", vmin=0.0, vmax=1.0,
-            aspect="equal", extent=[-180, 180, -180, 180],
-            interpolation="bilinear", rasterized=True,
+        # Same 10x10 inducing grid and color scale as the right-hand map
+        # in panel b. Maintenance keeps the cued bump and lets the others decay.
+        ell = np.degrees(0.44)  # matches panel b
+        centers = np.array(item_xy)
+        dense = np.linspace(-180.0, 180.0, 200)
+        GL, GC = np.meshgrid(dense, dense, indexing="ij")
+        field = _bump_surface(np.column_stack([GL.ravel(), GC.ravel()]), centers, ell)
+        lo, hi = float(field.min()), float(field.max())
+        grid_axis = np.linspace(-162, 162, 10)
+        ZL, ZC = np.meshgrid(grid_axis, grid_axis, indexing="ij")
+        Z = np.column_stack([ZL.ravel(), ZC.ravel()])
+        if kind == "encode":
+            raw = _bump_surface(Z, centers, ell)
+        else:
+            amps = [1.0 if i == _CUED else 0.30 for i in range(len(ITEMS))]
+            raw = np.zeros(Z.shape[0])
+            for (l, c), a in zip(item_xy, amps):
+                d = Z - np.array([l, c])
+                raw += a * np.exp(-0.5 * np.sum(d * d, axis=-1) / ell ** 2)
+        mZ = np.clip((raw - lo) / (hi - lo), 0.0, 1.0)
+        iax.set_facecolor(ns.GREY_FILL)
+        iax.scatter(
+            Z[:, 0], Z[:, 1], c=mZ, cmap="viridis", vmin=0.0, vmax=1.0,
+            marker="s", s=64, edgecolors="white", lw=0.3, zorder=3,
         )
         iax.set_xlim(-180, 180)
         iax.set_ylim(-180, 180)
@@ -416,20 +406,25 @@ def _stage_inset(ax, rect, kind):
             iax.axvline(cue_l, color="#E6E6E6", lw=0.7,
                         ls=(0, (2.2, 1.6)), zorder=4)
             iax.annotate(
-                "cue", xy=(cue_l, 180), xytext=(0, 1.5),
+                "(optional) cue", xy=(cue_l, 180), xytext=(0, 1.5),
                 textcoords="offset points", ha="center", va="bottom",
-                fontsize=_FS_MIN, color=ns.GREY_DK,
+                fontsize=_FS_MIN, color=ns.CUE,
                 clip_on=False, annotation_clip=False, zorder=6,
             )
         if kind == "encode":
-            iax.set_ylabel(r"color $c$", fontsize=_FS_MIN, labelpad=1.0)
+            # Sit above the arrow that joins the display to this map.
+            iax.set_ylabel("")
+            iax.text(
+                -0.36, 0.84, r"color $c$", transform=iax.transAxes,
+                rotation=90, ha="center", va="center", fontsize=_FS_MIN,
+                color=ns.INK, clip_on=False,
+            )
         else:
             # Maintenance sits directly beside Encoding, which already carries
-            # the colour-axis scale; dropping its own tick labels here frees
-            # the room the "delay" arrow label needs, avoiding overlap.
+            # the colour-axis scale.
             iax.set_yticklabels([])
         for sp in iax.spines.values():
-            sp.set_linewidth(0.7)
+            sp.set_linewidth(1.35)
             sp.set_color(ns.GREY_DK)
         for (l, c), col in zip(item_xy, item_cols):
             iax.scatter(l, c, marker="*", s=36, color=col,
@@ -440,7 +435,7 @@ def _stage_inset(ax, rect, kind):
                          zorder=2)
         iax.plot(colors, target_n, color=ns.INK, lw=1.05,
                  ls=(0, (2.2, 1.5)), zorder=3)
-        iax.plot(colors, read_n, color=ns.MEM, lw=1.7, zorder=4)
+        iax.plot(colors, read_n, color=ns.CUE, lw=1.7, zorder=4)
         iax.axvline(colors[k], color=ns.CUE, lw=1.1, ls=(0, (2.4, 1.8)),
                     zorder=5)
         iax.plot([colors[k]], [read_n[k]], marker="v", ms=5.0,
@@ -497,7 +492,7 @@ def _bump_surface(pts, centers, ell):
     return np.exp(-0.5 * sq / ell ** 2).sum(axis=1)
 
 
-def panel_b(ax):
+def panel_b(ax, cbar_a, map_in):
     """Why a sparse variational GP? The belief surface, with vs without
     inducing points.
 
@@ -526,7 +521,8 @@ def panel_b(ax):
     lo, hi = float(raw.min()), float(raw.max())
     surf = np.clip(((raw - lo) / (hi - lo)).reshape(n, n), 0.0, 1.0)
 
-    # 10x10 inducing grid: the SVGP carries a value only at each point
+    # 10x10 inducing grid: the SVGP carries a value only at each point.
+    # Colors use the same scale as the continuous surface.
     side = np.linspace(-162, 162, 10)
     ZL, ZC = np.meshgrid(side, side, indexing="ij")
     Z = np.column_stack([ZL.ravel(), ZC.ravel()])
@@ -540,278 +536,233 @@ def panel_b(ax):
             a.scatter(l, c, marker="*", s=58, color=col,
                       edgecolors="white", lw=0.7, zorder=6)
 
+    # Square maps in inches, so the pair stays square in a short top-row cell.
+    fig_w, fig_h = ax.figure.get_size_inches()
+    bb = ax.get_position()
+    pw, ph = bb.width * fig_w, bb.height * fig_h
+    # Same baseline and the same gap after the letter as panel c.
+    ax.text(
+        0.1011 / pw - 0.015, 0.908, "Approximation with a shared resource",
+        transform=ax.transAxes, ha="left", va="bottom", fontsize=10,
+        fontweight="bold", color=ns.INK, clip_on=False,
+    )
+    margin_l, gap_maps = 0.36, 0.40
+    # Match the vertical center of panel a's display and memory field.
+    y_map = 0.58 * ph - map_in / 2.0
+
+    def fx(inches):
+        return inches / pw
+
+    def fy(inches):
+        return inches / ph
+
     # ---- left: full GP -- a continuous belief over every (l, c) -------------
-    ax_gp = ax.inset_axes([0.085, 0.30, 0.37, 0.62])
+    ax_gp = ax.inset_axes([
+        fx(margin_l), fy(y_map), fx(map_in), fy(map_in),
+    ])
     _torus_axis(ax_gp, ylabel=True)
     ax_gp.imshow(surf.T, origin="lower", extent=ext, cmap=cmap, vmin=0.0,
                  vmax=1.0, interpolation="bilinear", zorder=1, rasterized=True)
     _stars(ax_gp)
-    ax_gp.text(0.0, 1.04, r"memory strength $f$",
-               transform=ax_gp.transAxes, fontsize=5.8, color=ns.INK,
-               va="bottom", ha="left", clip_on=False)
+    _place_runs(
+        ax_gp, 0.0, 1.06,
+        [("memory strength ", ns.INK), (r"$f$", ns.MEM)],
+        fontsize=5.8, transform=ax_gp.transAxes, ha="left", va="baseline",
+        dys=[0.0, -0.14],
+    )
 
     # ---- right: SVGP -- a value lives *only* at each of the M inducing points
-    ax_sv = ax.inset_axes([0.575, 0.30, 0.37, 0.62])
+    x_sv = margin_l + map_in + gap_maps
+    ax_sv = ax.inset_axes([fx(x_sv), fy(y_map), fx(map_in), fy(map_in)])
     _torus_axis(ax_sv, ylabel=False)
     ax_sv.set_facecolor(ns.GREY_FILL)
     ax_sv.scatter(Z[:, 0], Z[:, 1], c=mZ, cmap=cmap, vmin=0.0, vmax=1.0,
                   marker="s", s=64, edgecolors="white", lw=0.3, zorder=3)
     _stars(ax_sv)
-    ax_sv.text(0.0, 1.04, r"$M=100$ inducing points $\mathbf{Z}$",
+    ax_sv.text(0.0, 1.06, "inducing representation",
                transform=ax_sv.transAxes, fontsize=5.8, color=ns.INK,
                va="bottom", ha="left", clip_on=False)
 
     # ---- connecting arrow, centered on the two maps ----------------------
-    mid_y = 0.30 + 0.62 / 2
-    ns.arrow(ax, (0.455, mid_y), (0.575, mid_y), lw=1.8, ms=12)
-    ax.text(0.515, mid_y + 0.045, "sparsify", ha="center", va="bottom",
+    mid_y = fy(y_map + map_in / 2.0)
+    ns.arrow(ax, (fx(margin_l + map_in + 0.05), mid_y),
+             (fx(x_sv - 0.05), mid_y), lw=1.6, ms=11)
+    ax.text(fx(margin_l + map_in + gap_maps / 2.0), mid_y + fy(0.07),
+            "sparsify", ha="center", va="bottom",
             fontsize=6.2, color=ns.GREY_DK, style="italic")
 
-    # ---- shared predictive-mean colorbar ------------------------------------
+    # Same bar length, thickness, and vertical position as panel a.
     sm = mpl.cm.ScalarMappable(norm=mpl.colors.Normalize(0.0, 1.0), cmap=cmap)
-    cax = ax.inset_axes([0.405, 0.235, 0.19, 0.026])
+    ref = cbar_a.get_position()
+    maps_cx = bb.x0 + ((margin_l + map_in + gap_maps / 2.0) / pw) * bb.width
+    cax = ax.figure.add_axes([
+        maps_cx - ref.width / 2.0, ref.y0, ref.width, ref.height,
+    ])
     cb = ax.figure.colorbar(sm, cax=cax, orientation="horizontal")
-    cb.outline.set_linewidth(0.6); cb.outline.set_edgecolor(ns.GREY_LT)
+    cb.outline.set_linewidth(0.6)
+    cb.outline.set_edgecolor(ns.GREY_LT)
     cb.set_ticks([])
-    cax.text(-0.04, 0.5, "none", transform=cax.transAxes, fontsize=5.0,
+    cb.ax.tick_params(labelsize=7.0, length=2.4, width=0.6, colors=ns.INK)
+    cax.text(-0.04, 0.5, "none", transform=cax.transAxes, fontsize=7.0,
              color=ns.GREY_DK, ha="right", va="center")
-    cax.text(1.04, 0.5, "strong", transform=cax.transAxes, fontsize=5.0,
+    cax.text(1.04, 0.5, "strong", transform=cax.transAxes, fontsize=7.0,
              color=ns.GREY_DK, ha="left", va="center")
-    cax.text(0.5, -1.3, "predictive mean",
-             transform=cax.transAxes, fontsize=5.2, color=ns.GREY_DK,
+    cax.text(0.5, -0.55, "memory strength",
+             transform=cax.transAxes, fontsize=7.5, color=ns.GREY_DK,
              ha="center", va="top")
 
 
 # ---------------------------------------------------------------------------
-def panel_c(ax):
-    """MemGP positioned in the descriptive -> mechanistic / scope plane."""
-    L = 10.0
-    ax.set_xlim(-0.4, L + 0.8); ax.set_ylim(-0.4, L + 0.8)
-    for s in ax.spines.values():
-        s.set_visible(False)
-    # axes drawn as arrows that meet exactly at the origin (shrink=0 so the
-    # two tails are not pulled back, leaving no gap at the corner)
-    ax.annotate("", xy=(L + 0.7, 0), xytext=(0, 0),
-                arrowprops=dict(arrowstyle="-|>", color=ns.INK, lw=1.2,
-                                shrinkA=0, shrinkB=0),
-                zorder=3)
-    ax.annotate("", xy=(0, L + 0.7), xytext=(0, 0),
-                arrowprops=dict(arrowstyle="-|>", color=ns.INK, lw=1.2,
-                                shrinkA=0, shrinkB=0),
-                zorder=3)
-    ax.set_xticks([1.4, 8.6]); ax.set_xticklabels(["descriptive", "mechanistic"])
-    ax.set_yticks([1.4, 8.6]); ax.set_yticklabels(["single\nphenomenon", "unified"],
-                                                  rotation=90, va="center")
-    ax.tick_params(length=0)
-    ax.set_xlabel("Level of explanation")
-    ax.set_ylabel("Scope")
-
-    pts = [
-        ("Slot",        1.7, 2.0, ns.SLOT),
-        ("Resource",    3.0, 3.2, ns.RESOURCE),
-        ("Variable\nprecision", 4.2, 4.5, ns.darken(ns.RESOURCE, 0.15)),
-        ("Population\ncoding", 7.0, 4.2, ns.GREY_DK),
-        ("Sampling",    5.4, 5.4, ns.GREY),
-        ("RNN\nmodels", 7.8, 2.0, "#C2185B"),
-    ]
-    for name, x, y, c in pts:
-        ax.scatter([x], [y], s=42, color=c, zorder=4, edgecolors="white", lw=0.8)
-        ax.text(x, y - 0.55, name, ha="center", va="top", fontsize=6.8, color=c)
-    ax.scatter([8.6], [8.7], s=150, marker="*", color=ns.MEM, zorder=6,
-               edgecolors="white", lw=1.0)
-    ax.text(8.6, 7.9, "MemGP", ha="center", va="top", fontsize=8.8,
-            fontweight="bold", color=ns.MEM)
+def _display_inset(ax, rect):
+    """Panel-a stimulus screen, scaled to the given axes rectangle."""
+    screen = ax.inset_axes(rect)
+    ns.blank(screen, equal=True)
+    screen.set_xlim(-1.0, 1.0)
+    screen.set_ylim(-1.0, 1.0)
+    # Frame fills the inset so the screen matches the encoding heatmap box.
+    # Item ring and marker keep their size relative to that frame.
+    ns.task_screen(screen, 0, 0, s=2.0, lw=1.35, z=2)
+    ns.stim_items(
+        screen, [(l, c) for l, c, _ in ITEMS], 0, 0,
+        ring_r=0.72 / 1.075, sq=0.34 * (2.0 / 2.15), lw=0.7, z=5,
+    )
+    return screen
 
 
-# ---------------------------------------------------------------------------
-def panel_d(ax):
-    """Three-stage inference pipeline — open schematic (fig4a / fig5a style).
+def panel_c(ax, side):
+    """Display plus the three inference stages.
 
-    Equal visual columns: bold stage title + grey subtitle, illustration,
-    operator equation, then a pale objective card. Arrows carry the flow.
-    No coloured header bars or full-height stage frames.
+    The screen and the two belief maps match the panel-b squares. The
+    screen sits to the left of encoding. Each stage has a title, the
+    illustration, and the operator equation. Short arrows link the display
+    to encoding, encoding to maintenance, and maintenance to retrieval.
     """
     ns.blank(ax, equal=False)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
 
-    # Pale fills match fig5a's bottom concept strip.
-    stages = [
-        dict(
-            title="Encoding",
-            sub="fit posterior to observations",
-            col=ns.MEM,
-            fill=ns.MEM_PALE,
-            cx=0.155,
-            kind="encode",
-            general=r"$f:\ X \mapsto y$",
-            card_title=r"negative ELBO",
-            card_body=(
-                r"$\mathcal{L}_{\mathrm{enc}}"
-                r"=-\mathbb{E}_{q}[\log p(y\,|\,f)]$"
-                "\n"
-                r"$+\mathrm{KL}(q\,\|\,p)$"
-            ),
-        ),
-        dict(
-            title="Maintenance",
-            sub="rehearse under forgetting pressure",
-            col=ns.RESOURCE,
-            fill="#D8EEEA",
-            cx=0.500,
-            kind="maintain",
-            general=r"$f_t\ \mapsto\ f_{t+1}$",
-            card_title="attention-weighted ELBO",
-            card_body=(
-                r"$\mathcal{L}_{\mathrm{mnt}}=-\!\sum_m a(\ell_m)"
-                r"\,\mathbb{E}_{q}[\log p(\tilde y_m\,|\,f)]$"
-                "\n"
-                r"$+\ \beta\,\mathrm{KL}(q\,\|\,p)$"
-            ),
-            card_fs=_FS_MIN - 0.3,
-        ),
-        dict(
-            title="Retrieval",
-            sub="normalize and report the peak",
-            col=ns.CUE,
-            fill="#F8E8EB",
-            cx=0.845,
-            kind="retrieve",
-            general=r"$\hat{c}=\arg\max_c\, r(c)$",
-            card_title="divisive normalization",
-            card_body=(
-                r"$r(c)=f_t^{+}(c)\,/\,(\sigma_b\max f_t^{+}+\mathrm{pool})$"
-                "\n"
-                r"$\mathrm{pool}(c)=\sum_i w_i\, f_i^{+}(c)$"
-            ),
-            card_fs=_FS_MIN - 0.6,
-        ),
-    ]
-
-    # Belief-map insets must be physically square (panel-c style). Panel d is
-    # wide and short, so equal axes-fractions would stretch; convert a target
-    # height into a matching width in inches. Retrieval stays wider (1-D plot).
     fig_w, fig_h = ax.figure.get_size_inches()
     bbox = ax.get_position()
-    parent_w_in = bbox.width * fig_w
-    parent_h_in = bbox.height * fig_h
-    inset_h = 0.335
-    inset_w_sq = (inset_h * parent_h_in) / parent_w_in
-    inset_w_ret = max(inset_w_sq, 0.21)
-    inset_y = 0.48
-    card_w, card_h = 0.29, 0.165
-    card_y = 0.091
-    arrow_y = inset_y + 0.5 * inset_h
+    pw = bbox.width * fig_w
+    ph = bbox.height * fig_h
 
+    def fx(inches):
+        return inches / pw
+
+    def fy(inches):
+        return inches / ph
+
+    # side is the panel-b square, in inches. Stage gaps stay wide enough
+    # that the subtitles do not meet.
+    ret_w = 1.10
+    gap_de = 0.96
+    gap_stage = 0.88
+    # Same left inset as the screen in panel a, so the two displays line up.
+    x_disp = 0.02
+    x_enc = x_disp + side + gap_de
+    x_mnt = x_enc + side + gap_stage
+    x_ret = x_mnt + side + gap_stage
+
+    # Baseline shared with the panel letter. The 0.015 axes gap is the
+    # reference the other panel titles copy in inches.
+    ax.text(
+        0.0, 1.025, "Working memory as operations on the same posterior",
+        transform=ax.transAxes, ha="left", va="bottom", fontsize=10,
+        fontweight="bold", color=ns.INK, clip_on=False,
+    )
+    title_y = ph - 0.14
+    sub_y = title_y - 0.20
+    y_map = sub_y - 0.18 - side
+    eq_y = y_map - 0.48
+    arrow_y = fy(y_map + side / 2.0)
+
+    _display_inset(ax, [fx(x_disp), fy(y_map), fx(side), fy(side)])
+
+    # f uses the Figure 2 MemGP blue; the rest of each equation is black.
+    stages = [
+        dict(title="Encoding", sub="fit posterior to observations",
+             x=x_enc, w=side, kind="encode",
+             runs=[(r"$f$", ns.MEM), (r"$:\ X \mapsto y$", ns.INK)]),
+        dict(title="Maintenance", sub="rehearse under forgetting pressure",
+             x=x_mnt, w=side, kind="maintain",
+             runs=[(r"$f_t$", ns.MEM), (r"$\ \mapsto\ $", ns.INK),
+                   (r"$f_{t+1}$", ns.MEM)]),
+        dict(title="Retrieval", sub="normalize and report the peak",
+             x=x_ret, w=ret_w, kind="retrieve",
+             runs=[(r"$\hat{c}=\arg\max_c\, r(c)$", ns.INK)]),
+    ]
     for st in stages:
-        cx = st["cx"]
-        col = st["col"]
-        inset_w = inset_w_sq if st["kind"] != "retrieve" else inset_w_ret
-
-        # Title / subtitle — same hierarchy as fig4a mechanism headers.
-        ax.text(cx, 0.965, st["title"], ha="center", va="center",
+        cx = fx(st["x"] + st["w"] / 2.0)
+        ax.text(cx, fy(title_y), st["title"], ha="center", va="center",
                 fontsize=_FS_HEAD, fontweight="bold", color=ns.INK)
-        ax.text(cx, 0.900, st["sub"], ha="center", va="center",
-                fontsize=_FS_MIN, color=ns.GREY_DK)
-
+        ax.text(cx, fy(sub_y), st["sub"], ha="center", va="center",
+                fontsize=_FS_MIN, color=ns.INK)
         _stage_inset(
             ax,
-            [cx - inset_w / 2, inset_y, inset_w, inset_h],
+            [fx(st["x"]), fy(y_map), fx(st["w"]), fy(side)],
             st["kind"],
         )
-
-        # Operator under the visual, clear of inset tick/axis labels.
-        ax.text(cx, 0.31, st["general"], ha="center", va="center",
-                fontsize=_FS_EQ, color=col, fontweight="bold")
-
-        # Pale objective card — fig5a bottom strip.
-        bx = cx - card_w / 2
-        ax.add_patch(
-            FancyBboxPatch(
-                (bx, card_y), card_w, card_h,
-                boxstyle="round,pad=0.008,rounding_size=0.02",
-                fc=st["fill"], ec=col, lw=1.0, zorder=3,
-            )
+        _place_runs(
+            ax, cx, fy(eq_y), st["runs"], fontsize=_FS_EQ,
+            transform=ax.transAxes, ha="center", va="center", weight="bold",
         )
-        ax.text(cx, card_y + card_h - 0.026, st["card_title"],
-                ha="center", va="center", fontsize=_FS_NOTE,
-                fontweight="bold", color=col, zorder=4)
-        ax.text(cx, card_y + 0.048, st["card_body"],
-                ha="center", va="center",
-                fontsize=st.get("card_fs", _FS_MIN),
-                color=ns.GREY_DK, zorder=4, linespacing=1.25)
 
-    # Flow arrows between columns; endpoints track the square-map edges.
-    c0, c1, c2 = stages[0]["cx"], stages[1]["cx"], stages[2]["cx"]
-    gap = 0.012
-    ns.arrow(ax, (c0 + inset_w_sq / 2 + gap, arrow_y),
-             (c1 - inset_w_sq / 2 - gap, arrow_y), lw=1.6, ms=12)
-    ax.text(0.5 * (c0 + c1), arrow_y + 0.032, "delay", ha="center",
-            va="bottom", fontsize=_FS_MIN, color=ns.GREY_DK)
-    x_probe0 = c1 + inset_w_sq / 2 + gap
-    x_probe1 = c2 - inset_w_ret / 2 - gap
-    ns.arrow(ax, (x_probe0, arrow_y), (x_probe1, arrow_y), lw=1.6, ms=12)
-    ax.text(0.5 * (x_probe0 + x_probe1), arrow_y + 0.032, "probe", ha="center",
-            va="bottom", fontsize=_FS_MIN, color=ns.GREY_DK)
+    def _short_arrow(x_left, x_right, length=0.46, shift=0.0):
+        mid = 0.5 * (x_left + x_right) + shift
+        ns.arrow(
+            ax, (fx(mid - length / 2.0), arrow_y),
+            (fx(mid + length / 2.0), arrow_y),
+            lw=1.35, ms=9,
+        )
+
+    _short_arrow(x_disp + side, x_enc, length=0.30, shift=-0.16)
+    _short_arrow(x_enc + side, x_mnt)
+    _short_arrow(x_mnt + side, x_ret)
 
 
 # ---------------------------------------------------------------------------
 def main():
-    fig_w, fig_h = 7.2, 8.4
-    left, right, top_m, bottom = 0.07, 0.975, 0.965, 0.05
-    plot_w = right - left
-    # Panel a is a wide strip: screen, observation cloud, 3-D posterior.
-    h_a = 2.08 / fig_h
-    gap_ab = 0.012  # small breathing room below panel a
+    # Top row: display and memory field (a) beside the inducing-point pair (b).
+    # Bottom row: encoding, maintenance, and retrieval (c).
+    fig_w, fig_h = 7.20, 5.26
+    left_in, right_in = 0.40, 0.06
+    top_in, bot_in = 0.18, 0.00
+    gap_x_in, gap_y_in = 0.18, 0.26
+    row1_in = 2.62
+    row2_in = fig_h - top_in - row1_in - gap_y_in - bot_in
+    inner_w = fig_w - left_in - right_in
+    w_b_in = 2.62
+    w_a_in = inner_w - gap_x_in - w_b_in
 
+    def frac_x(inches):
+        return inches / fig_w
+
+    def frac_y(inches):
+        return inches / fig_h
+
+    y1 = bot_in + row2_in + gap_y_in
     fig = plt.figure(figsize=(fig_w, fig_h))
-    y_a = top_m - h_a - 0.02
-    ax_a = fig.add_axes([left, y_a, plot_w, h_a])
+    ax_a = fig.add_axes([
+        frac_x(left_in), frac_y(y1), frac_x(w_a_in), frac_y(row1_in),
+    ])
+    ax_b = fig.add_axes([
+        frac_x(left_in + w_a_in + gap_x_in), frac_y(y1),
+        frac_x(w_b_in), frac_y(row1_in),
+    ])
+    ax_c = fig.add_axes([
+        frac_x(left_in), frac_y(bot_in), frac_x(inner_w), frac_y(row2_in),
+    ])
 
-    bot_top = y_a - gap_ab
-    gs = fig.add_gridspec(2, 6, height_ratios=[1.18, 1.18],
-                          hspace=0.06, wspace=0.55,
-                          left=left, right=right, top=bot_top, bottom=bottom)
+    # One square size for the panel-b maps and both stimulus screens.
+    map_in = min((w_b_in - 0.36 - 0.40 - 0.02) / 2.0, row1_in * 0.46)
+    cbar_a = panel_a(ax_a, map_in)
+    panel_b(ax_b, cbar_a, map_in)
+    panel_c(ax_c, map_in)
 
-    # panel c on the left, panel b on the right (swapped from original)
-    ax_c = fig.add_subplot(gs[0, 0:3])
-    ax_b = fig.add_subplot(gs[0, 3:6])
-    ax_d = fig.add_subplot(gs[1, :])
-
-    # Flatten panel c and align its box with panel b's map area (which only
-    # occupies the y-band [0.30, 0.92] of the cell), so it is no longer tall.
-    pb, pc = ax_b.get_position(), ax_c.get_position()
-    map_lo, map_hi = 0.30, 0.92
-    ax_c.set_position([pc.x0, pb.y0 + map_lo * pb.height,
-                       pc.width, (map_hi - map_lo) * pb.height])
-
-    # The b/c cell carries ~0.20 of dead band below its maps (colourbar caption
-    # / x-label sit around cell fraction 0.19), so the gridspec gap read far
-    # larger than the a -> b/c one. Pull panel d's top up to close it; the
-    # panel's content is laid out in axes fractions, so it simply scales.
-    pd = ax_d.get_position()
-    d_top = 0.385
-    ax_d.set_position([pd.x0, bottom, pd.width, d_top - bottom])
-
-    panel_a(ax_a)
-    panel_b(ax_b)
-    panel_c(ax_c)
-    panel_d(ax_d)
-
-    def _fig_x(ax, x):
-        pos = ax.get_position()
-        return pos.x0 + x * pos.width
-
-    def _place(ax, letter, fig_x, y):
-        pos = ax.get_position()
-        ns.panel(ax, letter, x=(fig_x - pos.x0) / pos.width, y=y)
-
-    # a, b, and d share one vertical line. b is the reference.
-    col = _fig_x(ax_c, -0.16)
-    _place(ax_a, "a", col, 1.02)
-    _place(ax_c, "b", col, 1.04)
-    ns.panel(ax_b, "c", x=0.06, y=0.945)
-    _place(ax_d, "d", col, 1.0)
+    # Letters share a baseline with each panel title.
+    ns.panel(ax_a, "a", x=-0.015, y=0.90)
+    ns.panel(ax_b, "b", x=-0.015, y=0.90)
+    ns.panel(ax_c, "c", x=-0.015, y=1.02)
 
     ns.save_fig(fig, "fig1_concept")
 
