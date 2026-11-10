@@ -11,7 +11,7 @@ from pathlib import Path
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import LightSource, LinearSegmentedColormap, Normalize
+from matplotlib.colors import LightSource, LinearSegmentedColormap, to_rgb
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 
 from figures import nature_style as ns
@@ -40,9 +40,8 @@ def k_per(dx, lam=LAM, period=PERIOD):
 K_CMAP = LinearSegmentedColormap.from_list(
     "kseq", ["#F4F7FB", "#DCE8F5", "#9CC2E6", "#3F7CBF", "#0F4D92", "#08243F"],
 )
-F_CMAP = LinearSegmentedColormap.from_list(
-    "fdiv", ["#2166AC", "#67A9CF", "#F7F7F7", "#EF8A62", "#B2182B"], N=256,
-)
+# One face color. Slope shading shows the shape; it does not encode f.
+_FACE = to_rgb(ns.GREY_LT)
 
 
 def _close_torus(axis, surf):
@@ -65,12 +64,15 @@ def _sample_prior(n, n_draw, seed):
     return axis, samples
 
 
-def _surface3d(ax, axis, surf, cmap, vmin, vmax, view=VIEW, zlabel=False):
+def _surface3d(ax, axis, surf, vmin, vmax, view=VIEW):
     axis_c, z = _close_torus(axis, surf)
     X, Y = np.meshgrid(axis_c, axis_c, indexing="ij")
     ls = LightSource(azdeg=315, altdeg=48)
-    rgb = ls.shade(z, cmap=cmap, blend_mode="soft", vert_exag=1.15,
-                   vmin=vmin, vmax=vmax)
+    base = np.broadcast_to(_FACE, z.shape + (3,)).copy()
+    rgb = np.clip(
+        ls.shade_rgb(base, z, blend_mode="soft", vert_exag=1.15, fraction=1.0),
+        0.0, 1.0,
+    )
     ax.plot_surface(X, Y, z, rcount=z.shape[0], ccount=z.shape[1],
                     facecolors=rgb, linewidth=0, antialiased=True,
                     edgecolor="none", shade=False, rasterized=True)
@@ -91,25 +93,22 @@ def _surface3d(ax, axis, surf, cmap, vmin, vmax, view=VIEW, zlabel=False):
     ax.set_xticks([-180, 180])
     ax.set_yticks([-180, 180])
     ax.set_zticks([vmin, 0.0, vmax])
-    if not zlabel:
-        ax.set_zticklabels([])
     ax.tick_params(labelsize=FS_MIN - 0.3, pad=1.5, length=3.5, width=0.8,
                    colors=ns.INK)
     ax.set_xlabel(r"location $\ell$", fontsize=FS_MIN, labelpad=2)
     ax.set_ylabel(r"color $c$", fontsize=FS_MIN, labelpad=2)
     ax.set_zlabel("")
-    if zlabel:
-        # Above the top of the vertical axis, centered on the line.
-        ax.figure.canvas.draw()
-        spine = ax.zaxis.line.get_xydata()
-        top = spine[int(np.argmax(spine[:, 1]))]
-        # Italic f leans right of its box, so the anchor sits slightly left
-        # of the spine and the letter is centered on the line.
-        ax.text2D(
-            top[0] - 0.0022, top[1] + 0.008, r"$f$", transform=ax.transData,
-            ha="center", va="bottom", fontsize=FS_MIN, color=ns.INK,
-            clip_on=False,
-        )
+    # Above the top of the vertical axis, centered on the line.
+    ax.figure.canvas.draw()
+    spine = ax.zaxis.line.get_xydata()
+    top = spine[int(np.argmax(spine[:, 1]))]
+    # Italic f leans right of its box, so the anchor sits slightly left
+    # of the spine and the letter is centered on the line.
+    ax.text2D(
+        top[0] - 0.0022, top[1] + 0.008, r"$f$", transform=ax.transData,
+        ha="center", va="bottom", fontsize=FS_MIN, color=ns.INK,
+        clip_on=False,
+    )
     # Inset the surface from the box so native spines (drawn under the
     # surface) remain visible along the tick-bearing edges.
     xy_pad = 12.0
@@ -167,28 +166,16 @@ def main():
     vmax = float(max(np.abs(s).max() for s in draws))
     vmax = 0.05 * np.ceil(vmax / 0.05)
 
-    fig = plt.figure(figsize=(6.5, 2.85))
-    gs = fig.add_gridspec(1, 3, wspace=0.04,
-                          left=0.08, right=0.97, top=0.92, bottom=0.18)
+    fig = plt.figure(figsize=(6.5, 2.45))
+    gs = fig.add_gridspec(1, 3, wspace=0.06,
+                          left=0.06, right=0.98, top=0.94, bottom=0.06)
 
     ax_a = fig.add_subplot(gs[0, 0], projection="3d")
     ax_b = fig.add_subplot(gs[0, 1], projection="3d")
     ax_c = fig.add_subplot(gs[0, 2], projection="3d")
 
-    for i, (ax, surf) in enumerate(zip((ax_a, ax_b, ax_c), draws)):
-        _surface3d(ax, axis, surf, F_CMAP, vmin=-vmax, vmax=vmax,
-                   zlabel=(i == 0))
-
-    sm = mpl.cm.ScalarMappable(norm=Normalize(-vmax, vmax), cmap=F_CMAP)
-    sm.set_array([])
-    fig.canvas.draw()
-    pos_a = ax_a.get_position()
-    pos_c = ax_c.get_position()
-    cax_f = fig.add_axes([pos_a.x0, 0.045, pos_c.x1 - pos_a.x0, 0.022])
-    cb_f = fig.colorbar(sm, cax=cax_f, orientation="horizontal",
-                        ticks=[-vmax, 0, vmax])
-    cb_f.ax.tick_params(labelsize=FS_MIN, length=2.2)
-    cb_f.set_label(r"$f(\ell,\,c)$", fontsize=FS_NOTE, labelpad=1)
+    for ax, surf in zip((ax_a, ax_b, ax_c), draws):
+        _surface3d(ax, axis, surf, vmin=-vmax, vmax=vmax)
 
     def _letter(ax, lab, dx=-0.02, dy=0.02):
         p = ax.get_position()
