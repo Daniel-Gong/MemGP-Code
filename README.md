@@ -3,7 +3,7 @@
 Code and simulation results for
 
 > Dongyu Gong, Mario Belledonne, Ilker Yildirim. *A single inference process
-> underlying working memory behavior and circuits.*
+> underlying the behavior and neural circuits of working memory.*
 
 MemGP treats visual working memory as inference over a continuous function on
 the location × color torus. A sparse variational Gaussian process encodes noisy
